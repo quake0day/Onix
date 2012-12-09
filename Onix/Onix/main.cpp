@@ -5,15 +5,10 @@
 
 #include <boost/config.hpp>
 #include <iostream>
-#include <utility>                   // for std::pair
-#include <algorithm>                 // for std::for_each
 #include <boost/graph/adjacency_matrix.hpp>
-#include <boost/graph/graph_utility.hpp>
-#include <boost/graph/lookup_edge.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
+/* for test only */
+//#include <boost/graph/graph_utility.hpp>
 
 
 //用于print_vertices(), print_edges()和print_graph();
@@ -22,7 +17,6 @@ using namespace std;
 typedef adjacency_matrix<directedS> Graph;
 bool should_we_add(Graph &G, int u, int v);
 void print_query_res(int status);
-int TOTAL;
 
 template <typename T>
 class List{
@@ -156,17 +150,16 @@ int main()
 {
 	enum { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y ,Z, TOTAL };
 	//枚举常量，A…F用作顶点描述器
+    
+    /* For test only
 	//根据枚举量的性质，N == 6
 	const char* name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+     */
 	//6个顶点的名称属性
     List<int> li;
     
 	//有向图
 	typedef adjacency_matrix<directedS> Graph;
-    typedef boost::property<boost::edge_weight_t, double> EdgeWeightProperty;
-	typedef graph_traits < Graph >::vertex_descriptor vertex_descriptor;
-	typedef graph_traits < Graph >::edge_descriptor edge_descriptor;
-	typedef std::pair<int, int> Edge;
     
 	Graph g(TOTAL);
 	//构造有N（N=6）个顶点的图
@@ -181,7 +174,6 @@ int main()
     
     cout<<"TEST"<<endl;
     
-    int res = 0;
     print_query_res(query_edge(g, B, C, li));
     print_query_res(query_edge(g, B, F, li));
     print_query_res(query_edge(g, F, B, li));
@@ -194,26 +186,7 @@ int main()
 
 
 
-
-    // get the property map for vertex indices
-    typedef property_map<Graph, vertex_index_t>::type IndexMap;
-    IndexMap index = get(vertex_index, g);
-    
-    std::cout << "vertices(g) = ";
-    typedef graph_traits<Graph>::vertex_iterator vertex_iter;
-    std::pair<vertex_iter, vertex_iter> vp;
-    for (vp = vertices(g); vp.first != vp.second; ++vp.first)
-        std::cout << index[*vp.first] <<  " ";
-    std::cout << std::endl;
-    //std::cout << lookup_edge(B,F,g).second <<std::endl;
-    
-    std::cout << "edges(g) = ";
-    graph_traits<Graph>::edge_iterator ei, ei_end;
-    for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei)
-        std::cout << "(" << index[source(*ei, g)]
-        << "," << index[target(*ei, g)] << ") ";
-    std::cout << std::endl;
-    
+   /*
 	//打印图g顶点集合
 	std::cout << "有向图g的各种元素: "<<std::endl;
 	std::cout << "vertex set: ";
@@ -230,6 +203,8 @@ int main()
 	std::cout << "out-edges: " << std::endl;
 	print_graph(g, name);
 	std::cout << std::endl;
+    
+    */
     
 }
 
