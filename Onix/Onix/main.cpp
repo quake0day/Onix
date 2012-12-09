@@ -2,19 +2,57 @@
 //演示邻接矩阵adjacency_matrix的基本应用
 
 #pragma warning(disable : 4800 4819)
+static char svnid[] = "$Id: soc.c 6 2009-07-03 03:18:54Z kensmith $";
+
+#define	BUF_LEN	8192
+
+char *progname;
+char buf[BUF_LEN];
+
+void usage();
+int setup_client();
+int setup_server();
 
 #include <boost/config.hpp>
 #include <iostream>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
+#include <boost/algorithm/string.hpp>
+
 /* for test only */
-//#include <boost/graph/graph_utility.hpp>
+#include <boost/graph/graph_utility.hpp>
+
+
+#include	<stdio.h>
+#include	<stdlib.h>
+#include	<string.h>
+#include	<ctype.h>
+#include	<sys/types.h>
+#include	<sys/socket.h>
+#include	<netdb.h>
+#include	<netinet/in.h>
+#include	<inttypes.h>
+
+
+int s, sock, ch, server, done, aflg;
+ssize_t bytes;
+int soctype = SOCK_STREAM;
+char *host = NULL;
+char *port = NULL;
+extern char *optarg;
+extern int optind;
 
 
 //用于print_vertices(), print_edges()和print_graph();
 using namespace boost;
 using namespace std;
+
 typedef adjacency_matrix<directedS> Graph;
+#ifndef HAVE_SOCKLEN_T
+typedef unsigned int socklen_t;
+typedef unsigned int socket_t;
+#endif
+
 bool should_we_add(Graph &G, int u, int v);
 void print_query_res(int status);
 
@@ -143,18 +181,18 @@ private:
 };
 
 
-bool add_edge_in(Graph &G, int u, int v,List<int> &li);
+bool add_edge_in(Graph &G, char x, char y,List<int> &li);
 int query_edge(Graph &G, int u, int v, List<int> &li);
 
-int main()
+int main(int argc, char *argv[])
 {
-	enum { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y ,Z, TOTAL };
+    enum { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y ,Z, TOTAL };
 	//枚举常量，A…F用作顶点描述器
     
-    /* For test only
-	//根据枚举量的性质，N == 6
-	const char* name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-     */
+     //For test only
+     //根据枚举量的性质，N == 6
+     const char* name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    
 	//6个顶点的名称属性
     List<int> li;
     
@@ -162,6 +200,170 @@ int main()
 	typedef adjacency_matrix<directedS> Graph;
     
 	Graph g(TOTAL);
+    
+    
+    std::vector<std::string> strs;
+    std::vector<std::string> commands;
+    fd_set ready;
+	struct sockaddr_in msgfrom;
+	socket_t msgsize;
+	union {
+		uint32_t addr;
+		char bytes[4];
+	} fromaddr;
+    
+	if ((progname = rindex(argv[0], '/')) == NULL)
+		progname = argv[0];
+	else
+		progname++;
+	while ((ch = getopt(argc, argv, "adsp:h:")) != -1)
+		switch(ch) {
+			case 'a':
+				aflg++;		/* print address in output */
+				break;
+			case 'd':
+				soctype = SOCK_DGRAM;
+				break;
+			case 's':
+				server = 1;
+				break;
+			case 'p':
+				port = optarg;
+				break;
+			case 'h':
+				host = optarg;
+				break;
+			case '?':
+			default:
+				usage();
+		}
+	argc -= optind;
+	if (argc != 0)
+		usage();
+	if (!server && (host == NULL || port == NULL))
+		usage();
+	if (server && host != NULL)
+		usage();
+    /*
+     * Create socket on local host.
+     */
+	if ((s = socket(AF_INET, soctype, 0)) < 0) {
+		perror("socket");
+		exit(1);
+	}
+	if (!server)
+		sock = setup_client();
+	else
+		sock = setup_server();
+    /*
+     * Set up select(2) on both socket and terminal, anything that comes
+     * in on socket goes to terminal, anything that gets typed on terminal
+     * goes out socket...
+     */
+	while (!done) {
+		FD_ZERO(&ready);
+		FD_SET(sock, &ready);
+		FD_SET(fileno(stdin), &ready);
+		if (select((sock + 1), &ready, 0, 0, 0) < 0) {
+			perror("select");
+			exit(1);
+		}
+        int my_id = 'A';
+        int my_net_id = htonl(my_id);
+		if (FD_ISSET(fileno(stdin), &ready)) {
+			if ((bytes = ::read(fileno(stdin), buf, BUF_LEN)) <= 0)
+				done++;
+			///send(sock, buf, bytes, 0);
+            send(sock,(const char*)&my_net_id, 4, 0);
+		}
+		msgsize = sizeof(msgfrom);
+		if (FD_ISSET(sock, &ready)) {
+			if ((bytes = ::recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&msgfrom, &msgsize)) <= 0) {
+				done++;
+			} else if (aflg) {
+				fromaddr.addr = ntohl(msgfrom.sin_addr.s_addr);
+				fprintf(stderr, "Request received from %d.%d.%d.%d: ", 0xff & (unsigned int)fromaddr.bytes[0],
+                        0xff & (unsigned int)fromaddr.bytes[1],
+                        0xff & (unsigned int)fromaddr.bytes[2],
+                        0xff & (unsigned int)fromaddr.bytes[3]);
+                cout<<endl;
+			}
+			//write(fileno(stdout), buf, bytes);
+            char *charPtr = buf;
+            string str = charPtr;
+            
+            cout<<str<<endl;
+            boost::split(strs, str, boost::is_any_of(";"));
+            //cout<<strs[0]<<endl;
+            std::vector<string>::iterator it;
+            for(it = strs.begin(); it != strs.end(); it++)
+            {
+                string str = *it;
+                cout<<"COMMAND:"<<str<<endl;
+                str= trim_left_copy(str);
+                trim_right(str);
+                boost::split(commands, str, boost::is_any_of(" "));
+                //boost::trim(commands[0]);
+                cout<<commands.size()<<endl;
+                string command_begin = commands[0];
+                if(boost::iequals(command_begin, "reset")){
+                    cout<<"RESET COMMAND"<<endl;
+                    Graph g(TOTAL);
+                }
+                else if(boost::iequals(command_begin, "insert")){
+                    cout<<"Insert COMMAND"<<endl;
+                    std::vector<string>::iterator event;
+                    for(event = commands.begin(); event != commands.end(); event++){
+                        string e = *event;
+                        std::vector<std::string> nodes;
+                        boost::split(nodes, e, boost::is_any_of("->"));
+                        //cout<<"SIZE:"<<nodes.size()<<endl;
+                        if(nodes.size() == 3){
+                            int status;
+                            cout<<nodes[0].c_str()[0]<<":"<<nodes[2].c_str()[0]<<endl;
+                            status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[2].c_str()[0],li);
+                            int my_id;
+                            if(status == true){
+                                my_id = 'A';
+                            }
+                            else if(status == false){
+                                my_id = 'B';
+                            }
+                            int my_net_id = htonl(my_id);
+                            send(sock,(const char*)&my_net_id, 4, 0);
+                        }
+                    }
+                    //打印图g顶点集合
+                    std::cout << "有向图g的各种元素: "<<std::endl;
+                    std::cout << "vertex set: ";
+                    print_vertices(g, name);
+                    std::cout << std::endl;
+                    
+                    
+                    //打印图g边集合
+                    std::cout << "edge set: ";
+                    print_edges(g, name);
+                    std::cout << std::endl;
+                    
+                    //打印有向图g所有顶点的出边集合
+                    std::cout << "out-edges: " << std::endl;
+                    print_graph(g, name);
+                    std::cout << std::endl;
+                }
+                else if(boost::iequals(command_begin, "query")){
+                    cout<<"Query COMMAND"<<endl;
+
+                }
+                else{
+                    cout<<"null or invalid command"<<endl;
+                }
+                //transform(str.begin(),str.end(), str.begin(), tupper);
+            }
+        }
+	}
+	//return(0);
+    
+
 	//构造有N（N=6）个顶点的图
 	//添加边到无向图g中
     add_edge_in(g,B,C,li);
@@ -186,25 +388,9 @@ int main()
 
 
 
-   /*
-	//打印图g顶点集合
-	std::cout << "有向图g的各种元素: "<<std::endl;
-	std::cout << "vertex set: ";
-	print_vertices(g, name);
-	std::cout << std::endl;
+   
+
     
-    
-	//打印图g边集合
-	std::cout << "edge set: ";
-	print_edges(g, name);
-	std::cout << std::endl;
-    
-	//打印有向图g所有顶点的出边集合
-	std::cout << "out-edges: " << std::endl;
-	print_graph(g, name);
-	std::cout << std::endl;
-    
-    */
     
 }
 
@@ -224,7 +410,20 @@ bool should_we_add(Graph &G, int u, int v){
     return true;
 }
 
-bool add_edge_in(Graph &G, int u, int v,List<int> &li){
+bool add_edge_in(Graph &G, char x, char y,List<int> &li){
+    int u = (int) x;
+    int v = (int) y;
+    if(u >= 65 && u <= 90 && v>=65 && v<= 90){
+        u = u -65;
+        v = v -65;
+        if(u == v) // insert same event
+        {
+            return false;
+        }
+    }
+    else{
+        return false;
+    }
     if(should_we_add(G, u, v) == true){
         add_edge(u,v,G);
         if(li.travel_and_find(u) == false){
@@ -303,4 +502,103 @@ void print_query_res(int status){
     }
 }
 
+
+int
+setup_server() {
+	struct sockaddr_in serv, remote;
+	struct servent *se;
+	int newsock;
+    socklen_t len;
+    
+	len = sizeof(remote);
+	memset((void *)&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	if (port == NULL)
+		serv.sin_port = htons(0);
+	else if (isdigit(*port))
+		serv.sin_port = htons(atoi(port));
+	else {
+		if ((se = getservbyname(port, (char *)NULL)) < (struct servent *) 0) {
+			perror(port);
+			exit(1);
+		}
+		serv.sin_port = se->s_port;
+	}
+	if (::bind(s, (struct sockaddr *)&serv, sizeof(serv)) < 0) {
+		perror("bind");
+		exit(1);
+	}
+	if (getsockname(s, (struct sockaddr *) &remote, &len) < 0) {
+		perror("getsockname");
+		exit(1);
+	}
+	fprintf(stderr, "Port number is %d\n", ntohs(remote.sin_port));
+	listen(s, 1);
+	newsock = s;
+	if (soctype == SOCK_STREAM) {
+		fprintf(stderr, "Entering accept() waiting for connection.\n");
+		newsock = accept(s, (struct sockaddr *) &remote, &len);
+	}
+	return(newsock);
+}
+
+
+/*
+ * setup_client() - set up socket for the mode of soc running as a
+ *		client connecting to a port on a remote machine.
+ */
+
+int
+setup_client() {
+    
+	struct hostent *hp, *gethostbyname();
+	struct sockaddr_in serv;
+	struct servent *se;
+    
+    /*
+     * Look up name of remote machine, getting its address.
+     */
+	if ((hp = ::gethostbyname(host)) == NULL) {
+		fprintf(stderr, "%s: %s unknown host\n", progname, host);
+		exit(1);
+	}
+    /*
+     * Set up the information needed for the socket to be bound to a socket on
+     * a remote host.  Needs address family to use, the address of the remote
+     * host (obtained above), and the port on the remote host to connect to.
+     */
+	serv.sin_family = AF_INET;
+	memcpy(&serv.sin_addr, hp->h_addr, hp->h_length);
+	if (isdigit(*port))
+		serv.sin_port = htons(atoi(port));
+	else {
+		if ((se = getservbyname(port, (char *)NULL)) < (struct servent *) 0) {
+			perror(port);
+			exit(1);
+		}
+		serv.sin_port = se->s_port;
+	}
+    /*
+     * Try to connect the sockets...
+     */
+	if (connect(s, (struct sockaddr *) &serv, sizeof(serv)) < 0) {
+		perror("connect");
+		exit(1);
+	} else
+		fprintf(stderr, "Connected...\n");
+	return(s);
+}
+
+
+/*
+ * usage - print usage string and exit
+ */
+
+void
+usage()
+{
+	fprintf(stderr, "usage: %s -h host -p port\n", progname);
+	fprintf(stderr, "usage: %s -s [-p port]\n", progname);
+	exit(1);
+}
 
