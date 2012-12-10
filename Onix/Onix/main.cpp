@@ -36,7 +36,7 @@ int setup_server();
 #include <iostream>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-//#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string.hpp>
 
 
 /* for test only */
