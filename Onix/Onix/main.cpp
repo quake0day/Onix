@@ -348,7 +348,14 @@ int main(int argc, char *argv[])
             std::string str = charPtr;
             
             std::cout<<str<<std::endl;
-            
+            if (std::string::npos == str.find_first_of(";")){
+                //std::ostream request_stream(&request);
+                //request_stream<<"You miss ; please try again\r\n";
+                cout<<"No ;"<<endl;
+            }
+            else if (std::string::npos != str.find_first_of(";"))
+            {
+
             //boost::split(strs, str, boost::is_any_of(";"));
             std::vector<std::string> strs = split(str, ';');
             //cout<<strs[0]<<endl;
@@ -598,6 +605,7 @@ int main(int argc, char *argv[])
             }/**/
         }
 
+        }
 	}
 	//return(0);
     
