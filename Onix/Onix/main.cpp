@@ -34,6 +34,8 @@ int setup_server();
 
 #include <boost/config.hpp>
 #include <iostream>
+#include <string>
+#include <vector>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/algorithm/string.hpp>
