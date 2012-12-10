@@ -350,7 +350,7 @@ int main(int argc, char *argv[])
             std::cout<<str<<std::endl;
             
             //boost::split(strs, str, boost::is_any_of(";"));
-            std::vector<std::string> strs = split(str, ':');
+            std::vector<std::string> strs = split(str, ';');
             //cout<<strs[0]<<endl;
             std::vector<string>::iterator it;
             for(it = strs.begin(); it != strs.end(); it++)
@@ -362,6 +362,9 @@ int main(int argc, char *argv[])
                 //boost::split(commands, str, boost::is_any_of(" "));
                 //boost::trim(commands[0]);
                 cout<<commands.size()<<endl;
+                if(commands.size() == 0){
+                    continue;
+                }
                 string command_begin = commands[0];
                 string reset = "reset";
                 string insert = "insert";
@@ -403,31 +406,31 @@ int main(int argc, char *argv[])
                     for(event = commands.begin(); event != commands.end(); event++){
                         string e = *event;
                         //std::vector<std::string> nodes;
-                        std::vector<std::string> nodes = split(e, '->');
+                        std::vector<std::string> nodes = split(e, '>');
                         //boost::split(nodes, e, boost::is_any_of("->"));
                         //cout<<"SIZE:"<<nodes.size()<<endl;
                         string k;
                         char *sendBuf = NULL;
-                        
-                        if(nodes.size() == 3){
-                            if(check_valid(nodes[0].c_str()[0],nodes[2].c_str()[0]) == false){
+                        cout<< nodes[0].c_str()[0] <<":" <<nodes[1].c_str()[0] << endl;
+                        if(nodes.size() == 2){
+                            if(check_valid(nodes[0].c_str()[0],nodes[1].c_str()[0]) == false){
                                 continue;
                             }
                             bool isAdd = false;
                             bool isConfilct = false;
                             
-                            isAdd = should_we_add(g, nodes[0].c_str()[0], nodes[2].c_str()[0]);
-                            isConfilct = ::add_edge_in(m,nodes[0].c_str()[0],nodes[2].c_str()[0],ml);
+                            isAdd = should_we_add(g, nodes[0].c_str()[0], nodes[1].c_str()[0]);
+                            isConfilct = ::add_edge_in(m,nodes[0].c_str()[0],nodes[1].c_str()[0],ml);
                             //cout<<isConfilct<<endl;
                             if(isAdd == false){
                                 cout<<"CONFILICT DETECTED. INSERT FAILED"<<endl;
-                                cout<<nodes[0]<<"->"<<nodes[2]<<" and "<<nodes[2]<<"->"<<nodes[0]<<" cannot be true at the same time"<<endl;
+                                cout<<nodes[0].c_str()[0]<<"->"<<nodes[1].c_str()[0]<<" and "<<nodes[1].c_str()[0]<<"->"<<nodes[0].c_str()[0]<<" cannot be true at the same time"<<endl;
                                 k = "CONFILICT DETECTED. INSERT FAILED\n";
                                 k.append(nodes[0]);
                                 k.append("->");
-                                k.append(nodes[2]);
+                                k.append(nodes[1]);
                                 k.append(" and ");
-                                k.append(nodes[2]);
+                                k.append(nodes[1]);
                                 k.append("->");
                                 k.append(nodes[0]);
                                 k.append(" cannot be true at the same time");
@@ -470,21 +473,21 @@ int main(int argc, char *argv[])
                             //boost::split(nodes, e, boost::is_any_of("->"));
                             //cout<<"SIZE:"<<nodes.size()<<endl;
                             
-                            if(nodes.size() == 3){
+                            if(nodes.size() == 2){
                                 string k;
                                 
                                 char *sendBuf = NULL;
-                                cout<<nodes[0].c_str()[0]<<":"<<nodes[2].c_str()[0]<<endl;
-                                status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[2].c_str()[0],li);
+                                cout<<nodes[0].c_str()[0]<<":"<<nodes[1].c_str()[0]<<endl;
+                                status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[1].c_str()[0],li);
                                 if(status == false){
                                     cout<<"CONFILICT DETECTED. INSERT FAILED"<<endl;
-                                    cout<<nodes[0]<<"->"<<nodes[2]<<" and "<<nodes[2]<<"->"<<nodes[0]<<" cannot be true at the same time"<<endl;
+                                    cout<<nodes[0]<<"->"<<nodes[1]<<" and "<<nodes[1]<<"->"<<nodes[0]<<" cannot be true at the same time"<<endl;
                                     k = "CONFILICT DETECTED. INSERT FAILED\n";
                                     k.append(nodes[0]);
                                     k.append("->");
-                                    k.append(nodes[2]);
+                                    k.append(nodes[1]);
                                     k.append(" and ");
-                                    k.append(nodes[2]);
+                                    k.append(nodes[1]);
                                     k.append("->");
                                     k.append(nodes[0]);
                                     k.append(" cannot be true at the same time");
