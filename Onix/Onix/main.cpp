@@ -19,17 +19,7 @@ void usage();
 int setup_client();
 int setup_server();
 
-#include <boost/config.hpp>
-#include <semaphore.h>
-#include <iostream>
-#include <cstddef>
-#include <boost/graph/adjacency_matrix.hpp>
-#include <boost/graph/breadth_first_search.hpp>
-#include <boost/algorithm/string.hpp>
 
-
-/* for test only */
-#include <boost/graph/graph_utility.hpp>
 
 
 #include	<stdio.h>
@@ -42,6 +32,15 @@ int setup_server();
 #include	<netinet/in.h>
 #include	<inttypes.h>
 
+#include <boost/config.hpp>
+#include <iostream>
+#include <boost/graph/adjacency_matrix.hpp>
+#include <boost/graph/breadth_first_search.hpp>
+#include <boost/algorithm/string.hpp>
+
+
+/* for test only */
+#include <boost/graph/graph_utility.hpp>
 
 int s, sock, ch, server, done, aflg;
 ssize_t bytes;
