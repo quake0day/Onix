@@ -36,7 +36,7 @@ int setup_server();
 #include <iostream>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-#include <boost/algorithm/string.hpp>
+//#include <boost/algorithm/string.hpp>
 
 
 /* for test only */
@@ -308,6 +308,7 @@ int main(int argc, char *argv[])
             string str = charPtr;
             
             cout<<str<<endl;
+            /*
             boost::split(strs, str, boost::is_any_of(";"));
             //cout<<strs[0]<<endl;
             std::vector<string>::iterator it;
@@ -322,15 +323,7 @@ int main(int argc, char *argv[])
                 string command_begin = commands[0];
                 if(boost::iequals(command_begin, "reset")){
                     
-                    /*
-                     std::cout << "edges(g) = ";
-                     graph_traits<Graph>::edge_iterator ei, ei_end;
-                     for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei){
-                     //  std::cout << "(" << index[source(*ei, g)]<< "," << index[target(*ei, g)] << ") ";
-                     remove_edge(ei,g);
-                     }
-                     std::cout << std::endl;
-                     */
+
                     bool status;
                     typedef graph_traits<Graph>::vertex_iterator vertex_iter;
                     std::pair<vertex_iter, vertex_iter> vp;
@@ -491,18 +484,11 @@ int main(int argc, char *argv[])
                     std::cout << std::endl;
                 }
                 else if(boost::iequals(command_begin, "query")){
-                    //std::vector<string>::iterator event;
-                    //for(event = commands.begin(); event != commands.end(); event++){
-                    // string e = *event;
-                    //cout<<"Query e:"<<e<<endl;
-                    //std::vector<std::string> nodes;
-                    //boost::split(nodes, e, boost::is_any_of(" "));
-                    //cout<<"SIZE:"<<nodes.size()<<endl;
+
                     if(commands.size() >= 3){
                         int status=true;
                         int my_id,my_net_id;
-                        //cout<<commands[1].c_str()[0]<<":"<<commands[2].c_str()[0]<<endl;
-                        //status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[2].c_str()[0],li);
+
                         status = query_edge(g, commands[1].c_str()[0], commands[2].c_str()[0], li);
                         cout<<"QUERY DONE."<<endl;
                         string k;
@@ -560,8 +546,9 @@ int main(int argc, char *argv[])
                     cout<<"null or invalid command"<<endl;
                 }
                 //transform(str.begin(),str.end(), str.begin(), tupper);
-            }
+            }*/
         }
+
 	}
 	//return(0);
     
