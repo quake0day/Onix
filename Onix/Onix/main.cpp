@@ -22,10 +22,11 @@ int setup_server();
 
 
 
+
 #include	<stdio.h>
 #include	<stdlib.h>
-#include	<string.h>
-#include	<ctype.h>
+//#include	<string.h>
+//#include	<ctype.h>
 #include	<sys/types.h>
 #include	<sys/socket.h>
 #include	<netdb.h>
@@ -36,9 +37,9 @@ int setup_server();
 #include <iostream>
 #include <string>
 #include <vector>
+#include <boost/algorithm/string.hpp>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-#include <boost/algorithm/string.hpp>
 
 
 /* for test only */
