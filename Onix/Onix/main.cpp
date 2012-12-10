@@ -6,6 +6,12 @@ static char svnid[] = "$Id: soc.c 6 2009-07-03 03:18:54Z kensmith $";
 
 #define	BUF_LEN	8192
 
+
+
+
+
+
+
 char *progname;
 char buf[BUF_LEN];
 
@@ -14,10 +20,13 @@ int setup_client();
 int setup_server();
 
 #include <boost/config.hpp>
+#include <semaphore.h>
 #include <iostream>
+#include <cstddef>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/algorithm/string.hpp>
+
 
 /* for test only */
 #include <boost/graph/graph_utility.hpp>
@@ -55,7 +64,7 @@ typedef unsigned int socket_t;
 
 bool should_we_add(Graph &G, int u, int v);
 void print_query_res(int status);
-
+bool check_valid(int u, int v);
 template <typename T>
 class List{
 public:
@@ -184,6 +193,10 @@ private:
 bool add_edge_in(Graph &G, char x, char y,List<int> &li);
 int query_edge(Graph &G, int u, int v, List<int> &li);
 
+
+const size_t MAX_THREADS = 4;
+bool ctrlc_pressed = false;
+
 int main(int argc, char *argv[])
 {
     enum { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y ,Z, TOTAL };
@@ -200,6 +213,9 @@ int main(int argc, char *argv[])
 	typedef adjacency_matrix<directedS> Graph;
     
 	Graph g(TOTAL);
+    
+    Graph m(TOTAL);
+    List<int> ml;
     
     
     std::vector<std::string> strs;
@@ -299,7 +315,6 @@ int main(int argc, char *argv[])
             for(it = strs.begin(); it != strs.end(); it++)
             {
                 string str = *it;
-                cout<<"COMMAND:"<<str<<endl;
                 str= trim_left_copy(str);
                 trim_right(str);
                 boost::split(commands, str, boost::is_any_of(" "));
@@ -307,31 +322,157 @@ int main(int argc, char *argv[])
                 cout<<commands.size()<<endl;
                 string command_begin = commands[0];
                 if(boost::iequals(command_begin, "reset")){
-                    cout<<"RESET COMMAND"<<endl;
-                    Graph g(TOTAL);
+                    
+                    /*
+                    std::cout << "edges(g) = ";
+                    graph_traits<Graph>::edge_iterator ei, ei_end;
+                    for (tie(ei, ei_end) = edges(g); ei != ei_end; ++ei){
+                      //  std::cout << "(" << index[source(*ei, g)]<< "," << index[target(*ei, g)] << ") ";
+                        remove_edge(ei,g);
+                    }
+                    std::cout << std::endl;
+                    */
+                    bool status;
+                    typedef graph_traits<Graph>::vertex_iterator vertex_iter;
+                    std::pair<vertex_iter, vertex_iter> vp;
+                    for (vp = vertices(g); vp.first != vp.second; ++vp.first){
+                        clear_vertex(*vp.first,g);
+                    }                    
+                    while(li.empty()==false){
+                        li.pop_front();
+                    }
+                    if(li.size() == 0){
+                        status = true;
+                    }
+                    string k;
+                    char *sendBuf = NULL;
+                    if(status == true){
+                        cout<<"RESET DONE"<<endl;
+                        k="RESET DONE";
+                        sendBuf = (char *)k.c_str();
+                    }
+                    else if(status == false){
+                        cout<<"RESET FAILED"<<endl;
+                        k="RESET FAILED";
+                        sendBuf = (char *)k.c_str();
+                    }
+                    k = k.append("\n");
+                    send(sock,sendBuf, k.size(), 0);
                 }
+                // insert Command
                 else if(boost::iequals(command_begin, "insert")){
-                    cout<<"Insert COMMAND"<<endl;
                     std::vector<string>::iterator event;
+                    bool addAble=true;
+                    int status;
                     for(event = commands.begin(); event != commands.end(); event++){
                         string e = *event;
                         std::vector<std::string> nodes;
                         boost::split(nodes, e, boost::is_any_of("->"));
                         //cout<<"SIZE:"<<nodes.size()<<endl;
+                        string k;
+                        char *sendBuf = NULL;
+  
                         if(nodes.size() == 3){
-                            int status;
+                        if(check_valid(nodes[0].c_str()[0],nodes[2].c_str()[0]) == false){
+                                continue;
+                            }
+                            bool isAdd = false;
+                            bool isConfilct = false;
+                        
+                            isAdd = should_we_add(g, nodes[0].c_str()[0], nodes[2].c_str()[0]);
+                            isConfilct = ::add_edge_in(m,nodes[0].c_str()[0],nodes[2].c_str()[0],ml);
+                            //cout<<isConfilct<<endl;
+                            if(isAdd == false){
+                                cout<<"CONFILICT DETECTED. INSERT FAILED"<<endl;
+                                cout<<nodes[0]<<"->"<<nodes[2]<<" and "<<nodes[2]<<"->"<<nodes[0]<<" cannot be true at the same time"<<endl;
+                                k = "CONFILICT DETECTED. INSERT FAILED\n";
+                                k.append(nodes[0]);
+                                k.append("->");
+                                k.append(nodes[2]);
+                                k.append(" and ");
+                                k.append(nodes[2]);
+                                k.append("->");
+                                k.append(nodes[0]);
+                                k.append(" cannot be true at the same time");
+                                sendBuf = (char*)k.c_str();
+                                k = k.append("\n");
+                                //int my_net_id = htonl(my_id);
+                                //send(sock,(const char*)&my_net_id, 4, 0);
+                                send(sock,sendBuf, k.size(), 0);
+                                //remove_edge
+                                addAble = false;
+                            }
+                            if(isConfilct == false){
+                                cout<<"CONFILICT DETECTED. INSERT FAILED"<<endl;
+                                cout<<"There is a cycle in this input"<<endl;
+                                k = "CONFILICT DETECTED. INSERT FAILED\n";
+                                k.append("There is a Cycle in your input.");
+                                sendBuf = (char*)k.c_str();
+                                k = k.append("\n");
+                                //int my_net_id = htonl(my_id);
+                                //send(sock,(const char*)&my_net_id, 4, 0);
+                                send(sock,sendBuf, k.size(), 0);
+                                addAble = false;
+                            }
+                        }
+                    }
+                    typedef graph_traits<Graph>::vertex_iterator vertex_iter;
+                    std::pair<vertex_iter, vertex_iter> vp;
+                    for (vp = vertices(m); vp.first != vp.second; ++vp.first){
+                        clear_vertex(*vp.first,m);
+                    }
+                    while(ml.empty()==false){
+                        ml.pop_front();
+                    }
+                    if(addAble == true){
+                        bool total_status = true;
+                    for(event = commands.begin(); event != commands.end(); event++){
+                        string e = *event;
+                        std::vector<std::string> nodes;
+                        boost::split(nodes, e, boost::is_any_of("->"));
+                        //cout<<"SIZE:"<<nodes.size()<<endl;
+
+                        if(nodes.size() == 3){
+                            string k;
+                        
+                            char *sendBuf = NULL;
                             cout<<nodes[0].c_str()[0]<<":"<<nodes[2].c_str()[0]<<endl;
                             status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[2].c_str()[0],li);
-                            int my_id;
-                            if(status == true){
-                                my_id = 'A';
+                            if(status == false){
+                                cout<<"CONFILICT DETECTED. INSERT FAILED"<<endl;
+                                cout<<nodes[0]<<"->"<<nodes[2]<<" and "<<nodes[2]<<"->"<<nodes[0]<<" cannot be true at the same time"<<endl;
+                                k = "CONFILICT DETECTED. INSERT FAILED\n";
+                                k.append(nodes[0]);
+                                k.append("->");
+                                k.append(nodes[2]);
+                                k.append(" and ");
+                                k.append(nodes[2]);
+                                k.append("->");
+                                k.append(nodes[0]);
+                                k.append(" cannot be true at the same time");
+                                sendBuf = (char*)k.c_str();
+                                k = k.append("\n");
+                                //int my_net_id = htonl(my_id);
+                                //send(sock,(const char*)&my_net_id, 4, 0);
+                                send(sock,sendBuf, k.size(), 0);
+                                //remove_edge
+                                total_status = false;
                             }
-                            else if(status == false){
-                                my_id = 'B';
-                            }
-                            int my_net_id = htonl(my_id);
-                            send(sock,(const char*)&my_net_id, 4, 0);
+                         }
+
                         }
+                        string k;
+                        char *sendBuf = NULL;
+                        if(total_status == true){
+                            cout<<"Insert DONE."<<endl;
+                            k = "INSERT DONE";
+                            sendBuf = (char*)k.c_str();
+                            k = k.append("\n");
+                            //int my_net_id = htonl(my_id);
+                            //send(sock,(const char*)&my_net_id, 4, 0);
+                            send(sock,sendBuf, k.size(), 0);
+
+                    }
                     }
                     //打印图g顶点集合
                     std::cout << "有向图g的各种元素: "<<std::endl;
@@ -351,8 +492,70 @@ int main(int argc, char *argv[])
                     std::cout << std::endl;
                 }
                 else if(boost::iequals(command_begin, "query")){
-                    cout<<"Query COMMAND"<<endl;
+                    //std::vector<string>::iterator event;
+                    //for(event = commands.begin(); event != commands.end(); event++){
+                       // string e = *event;
+                        //cout<<"Query e:"<<e<<endl;
+                        //std::vector<std::string> nodes;
+                        //boost::split(nodes, e, boost::is_any_of(" "));
+                        //cout<<"SIZE:"<<nodes.size()<<endl;
+                    if(commands.size() >= 3){
+                        int status=true;
+                        int my_id,my_net_id;
+                        //cout<<commands[1].c_str()[0]<<":"<<commands[2].c_str()[0]<<endl;
+                            //status = ::add_edge_in(g,nodes[0].c_str()[0],nodes[2].c_str()[0],li);
+                        status = query_edge(g, commands[1].c_str()[0], commands[2].c_str()[0], li);
+                        cout<<"QUERY DONE."<<endl;
+                        string k;
+                        char *sendBuf = NULL;
+                        if(status == 0){
+                            k = commands[1].append(" happend before ");
+                            k = k.append(commands[2]);
+                            sendBuf = (char*)k.c_str();
 
+                        }
+                        if(status == 1){
+                            //my_id='D';
+                            k = commands[2].append(" happend before ");
+                            k = k.append(commands[1]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == 2){
+                            k = commands[1].append(" concurrent to ");
+                            k = k.append(commands[2]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == -1){
+                            k = "Event not found: ";
+                            k = k.append(commands[1]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == -2){
+                            k = "Event not found: ";
+                            k = k.append(commands[2]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == -3){
+                            k = "Event not found: ";
+                            k = k.append(commands[1]);
+                            k = k.append(",");
+                            k = k.append(commands[2]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == -4){
+                            k = "Query the same event: ";
+                            k = k.append(commands[1]);
+                            sendBuf = (char*)k.c_str();
+                        }
+                        if(status == -5){
+                            k = "Server error...";
+                            sendBuf = (char*)k.c_str();
+                            my_net_id = htonl(my_id);
+                        }
+                        k = k.append("\n");
+                        send(sock,sendBuf, k.size(), 0);
+                            //send(sock,(const char*)&my_net_id, 4, 0);
+                        }
                 }
                 else{
                     cout<<"null or invalid command"<<endl;
@@ -395,7 +598,18 @@ int main(int argc, char *argv[])
 }
 
 
-bool should_we_add(Graph &G, int u, int v){
+bool should_we_add(Graph &G, int x, int y){
+    int u = (int) x;
+    int v = (int) y;
+    if(u >= 65 && u <= 90 && v>=65 && v<= 90){
+        u = u -65;
+        v = v -65;
+
+    }
+    if(u == v) // insert same event
+    {
+        return false;
+    }
     
     std::vector<int> distances(num_vertices(G), 0);
     
@@ -446,8 +660,19 @@ bool add_edge_in(Graph &G, char x, char y,List<int> &li){
  * -2: v not found
  * -3: u and v not found
  * -5: occur error
+ * -4: query the same thing;
  */
-int query_edge(Graph &G, int u, int v, List<int> &li){
+int query_edge(Graph &G, int x, int y, List<int> &li){
+    int u = (int) x;
+    int v = (int) y;
+    if(u >= 65 && u <= 90 && v>=65 && v<= 90){
+        u = u -65;
+        v = v -65;
+        if(u == v) // insert same event
+        {
+            return -4;
+        }
+    }
     bool test_u_v = true;
     bool test_v_u = true;
     int status = -5;
@@ -524,10 +749,14 @@ setup_server() {
 		}
 		serv.sin_port = se->s_port;
 	}
+    
 	if (::bind(s, (struct sockaddr *)&serv, sizeof(serv)) < 0) {
 		perror("bind");
 		exit(1);
 	}
+    
+    
+    
 	if (getsockname(s, (struct sockaddr *) &remote, &len) < 0) {
 		perror("getsockname");
 		exit(1);
@@ -587,6 +816,14 @@ setup_client() {
 	} else
 		fprintf(stderr, "Connected...\n");
 	return(s);
+}
+
+bool check_valid(int u, int v)
+{
+    if(u >= 65 && u <= 90 && v>=65 && v<= 90){
+        return true;
+    }
+    return false;
 }
 
 
