@@ -53,7 +53,7 @@ extern int optind;
 
 //用于print_vertices(), print_edges()和print_graph();
 using namespace boost;
-using namespace std;
+//using namespace std;
 
 typedef adjacency_matrix<directedS> Graph;
 #ifndef HAVE_SOCKLEN_T
@@ -87,10 +87,10 @@ public:
 			return ;
 		Node* p = head;
 		while(p != NULL){
-			cout << p->data << ' ';
+            std::cout << p->data << ' ';
 			p = p->next;
 		}
-		cout << endl;
+        std::cout << std::endl;
 	}
     //遍历链表并查找元素K
 	bool travel_and_find(const T& d)const{
@@ -301,13 +301,13 @@ int main(int argc, char *argv[])
                         0xff & (unsigned int)fromaddr.bytes[1],
                         0xff & (unsigned int)fromaddr.bytes[2],
                         0xff & (unsigned int)fromaddr.bytes[3]);
-                cout<<endl;
+                std::cout<<std::endl;
 			}
 			//write(fileno(stdout), buf, bytes);
             char *charPtr = buf;
-            string str = charPtr;
+            std::string str = charPtr;
             
-            cout<<str<<endl;
+            std::cout<<str<<std::endl;
             /*
             boost::split(strs, str, boost::is_any_of(";"));
             //cout<<strs[0]<<endl;
@@ -563,7 +563,7 @@ int main(int argc, char *argv[])
     add_edge_in(g,A,K,li);
     add_edge_in(g,F,C,li);
     
-    cout<<"TEST"<<endl;
+    std::cout<<"TEST"<<std::endl;
     
     print_query_res(query_edge(g, B, C, li));
     print_query_res(query_edge(g, B, F, li));
@@ -694,22 +694,22 @@ int query_edge(Graph &G, int x, int y, List<int> &li){
 
 void print_query_res(int status){
     if(status == 0){
-        cout<<"u->v"<<endl;
+        std::cout<<"u->v"<<std::endl;
     }
     if(status == 1){
-        cout<<"v->u"<<endl;
+        std::cout<<"v->u"<<std::endl;
     }
     if(status == 2){
-        cout<<"u | v"<<endl;
+        std::cout<<"u | v"<<std::endl;
     }
     if(status == -1){
-        cout<<"u not found"<<endl;
+        std::cout<<"u not found"<<std::endl;
     }
     if(status == -2){
-        cout<<"v not found"<<endl;
+        std::cout<<"v not found"<<std::endl;
     }
     if(status == -3){
-        cout<<"u, v not found"<<endl;
+        std::cout<<"u, v not found"<<std::endl;
     }
 }
 
