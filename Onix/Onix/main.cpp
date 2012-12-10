@@ -36,8 +36,13 @@ int setup_server();
 #include <boost/config.hpp>
 #include <iostream>
 #include <string>
-#include <vector>
-#include <boost/algorithm/string.hpp>
+#include <sstream>
+#include <algorithm>
+#include <iterator>
+
+#include <functional>
+#include <cctype>
+#include <locale>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 
@@ -56,7 +61,7 @@ extern int optind;
 
 //用于print_vertices(), print_edges()和print_graph();
 using namespace boost;
-//using namespace std;
+using namespace std;
 
 typedef adjacency_matrix<directedS> Graph;
 #ifndef HAVE_SOCKLEN_T
@@ -67,6 +72,38 @@ typedef unsigned int socket_t;
 bool should_we_add(Graph &G, int u, int v);
 void print_query_res(int status);
 bool check_valid(int u, int v);
+
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while(std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    return split(s, delim, elems);
+}
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
+}
+
 template <typename T>
 class List{
 public:
@@ -311,22 +348,26 @@ int main(int argc, char *argv[])
             std::string str = charPtr;
             
             std::cout<<str<<std::endl;
-            /*
-            boost::split(strs, str, boost::is_any_of(";"));
+            
+            //boost::split(strs, str, boost::is_any_of(";"));
+            std::vector<std::string> strs = split(str, ':');
             //cout<<strs[0]<<endl;
             std::vector<string>::iterator it;
             for(it = strs.begin(); it != strs.end(); it++)
             {
                 string str = *it;
-                str= trim_left_copy(str);
-                trim_right(str);
-                boost::split(commands, str, boost::is_any_of(" "));
+                trim(str);
+                //trim_right(str);
+                std::vector<std::string> commands = split(str, ' ');
+                //boost::split(commands, str, boost::is_any_of(" "));
                 //boost::trim(commands[0]);
                 cout<<commands.size()<<endl;
                 string command_begin = commands[0];
-                if(boost::iequals(command_begin, "reset")){
+                string reset = "reset";
+                string insert = "insert";
+                string query = "query";
+                if(reset == command_begin){
                     
-
                     bool status;
                     typedef graph_traits<Graph>::vertex_iterator vertex_iter;
                     std::pair<vertex_iter, vertex_iter> vp;
@@ -355,14 +396,15 @@ int main(int argc, char *argv[])
                     send(sock,sendBuf, k.size(), 0);
                 }
                 // insert Command
-                else if(boost::iequals(command_begin, "insert")){
+                else if(command_begin == insert){
                     std::vector<string>::iterator event;
                     bool addAble=true;
                     int status;
                     for(event = commands.begin(); event != commands.end(); event++){
                         string e = *event;
-                        std::vector<std::string> nodes;
-                        boost::split(nodes, e, boost::is_any_of("->"));
+                        //std::vector<std::string> nodes;
+                        std::vector<std::string> nodes = split(e, '->');
+                        //boost::split(nodes, e, boost::is_any_of("->"));
                         //cout<<"SIZE:"<<nodes.size()<<endl;
                         string k;
                         char *sendBuf = NULL;
@@ -423,8 +465,9 @@ int main(int argc, char *argv[])
                         bool total_status = true;
                         for(event = commands.begin(); event != commands.end(); event++){
                             string e = *event;
-                            std::vector<std::string> nodes;
-                            boost::split(nodes, e, boost::is_any_of("->"));
+                            //std::vector<std::string> nodes;
+                            std::vector<std::string> nodes = split(e, '->');
+                            //boost::split(nodes, e, boost::is_any_of("->"));
                             //cout<<"SIZE:"<<nodes.size()<<endl;
                             
                             if(nodes.size() == 3){
@@ -486,7 +529,7 @@ int main(int argc, char *argv[])
                     print_graph(g, name);
                     std::cout << std::endl;
                 }
-                else if(boost::iequals(command_begin, "query")){
+                else if(command_begin == query){
 
                     if(commands.size() >= 3){
                         int status=true;
@@ -549,7 +592,7 @@ int main(int argc, char *argv[])
                     cout<<"null or invalid command"<<endl;
                 }
                 //transform(str.begin(),str.end(), str.begin(), tupper);
-            }*/
+            }/**/
         }
 
 	}
