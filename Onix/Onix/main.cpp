@@ -203,7 +203,6 @@ void session(socket_ptr sock)
         for (;;)
         {
             char data[max_length];
-            
             boost::system::error_code error;
             size_t length = sock->read_some(boost::asio::buffer(data), error);
             if (error == boost::asio::error::eof)
@@ -492,6 +491,11 @@ void session(socket_ptr sock)
                     }
                 }
                 request_stream << "\r\n\r\n";
+                boost::asio::write(*sock, request);
+                std::istream is(&request);
+                std::string line;
+                std::getline(is, line);
+                reque
                 boost::asio::write(*sock, request);
             }
         }
