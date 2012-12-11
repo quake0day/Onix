@@ -1,6 +1,4 @@
-//FileName:adj_matrix_demo.cpp
-//演示邻接矩阵adjacency_matrix的基本应用
-
+// author:quake0day
 #pragma warning(disable : 4800 4819)
 static char svnid[] = "$Id: soc.c 6 2009-07-03 03:18:54Z kensmith $";
 
@@ -60,12 +58,6 @@ int setup_server();
 /* for test only */
 #include <boost/graph/graph_utility.hpp>
 
-
-
-
-// This needs to be declared volatile because it can be altered by an other thread. Meaning the compiler cannot
-// optimise the code, because it's declared that not only the program can change this variable, but also external
-// programs. In this case, a thread.
 volatile fd_set the_state;
 
 pthread_mutex_t mutex_state = PTHREAD_MUTEX_INITIALIZER;
@@ -82,8 +74,6 @@ char *port = NULL;
 extern char *optarg;
 extern int optind;
 
-
-//用于print_vertices(), print_edges()和print_graph();
 using namespace boost;
 using namespace std;
 
@@ -131,21 +121,10 @@ static inline std::string &trim(std::string &s) {
 template <typename T>
 class List{
 public:
-	//构造函数
 	List():head(NULL), len(0){}
-	//析构函数
 	~List(){
 		clear();
 	}
-	//判断链表是否为空
-	bool empty()const{
-		return head == NULL;
-	}
-	//返回链表元素的个数
-	int size()const{
-		return len;
-	}
-	//遍历链表
 	void travel()const{
 		if(empty())
 			return ;
@@ -154,7 +133,6 @@ public:
 			p = p->next;
 		}
 	}
-    //遍历链表并查找元素K
 	bool travel_and_find(const T& d)const{
         Node* q = new Node(d);
 		if(empty())
@@ -168,8 +146,12 @@ public:
 		}
         return false;
 	}
-    
-	//向任意位置插入元素
+	bool empty()const{
+		return head == NULL;
+	}
+	int size()const{
+		return len;
+	}
 	void insert(const T& d, int pos){
 		Node* p = new Node(d);
 		Node*& pn = getptr(pos);
@@ -177,30 +159,14 @@ public:
 		pn = p;
 		++len;
 	}
-	//从链表头部插入
 	List& push_front(const T& d){
 		insert(d, 0);
 		return *this;
 	}
-	//从链表尾部插入
 	List& push_back(const T& d){
 		insert(d, size());
 		return *this;
 	}
-	//返回头部元素
-	T front()const{
-		if(empty())
-			return ;
-		return head->data;
-	}
-	//返回尾部元素
-	T back()const{
-		if(empty())
-			return ;
-		Node*& pn = getptr(size()-1);
-		return pn->data;
-	}
-	//删除指定位置元素
 	void erase(int pos){
 		if(pos < 0 || pos >= size())
 			throw "invalid";
@@ -210,11 +176,9 @@ public:
 		delete p;
 		--len;
 	}
-	//删除表头元素
 	void pop_front(){
 		erase(0);
 	}
-	//删除尾部元素
 	void pop_back(){
 		erase(size()-1);
 	}
@@ -226,7 +190,7 @@ private:
 	};
 	Node* head;
 	int len;
-	//释放动态内存，供析构函数调用
+
 	void clear(){
 		if(head == NULL)
 			return ;
@@ -236,10 +200,10 @@ private:
 			head = head->next;
 		}
 	}
-	//得到指向插入位置的指针
+
 	Node*& getptr(int pos){
 		if(pos < 0 || pos > size())
-			throw "invalid";
+			throw "error";
 		if(pos == 0)
 			return head;
 		Node* p = head;
@@ -257,19 +221,19 @@ void *tcp_server_read(void *sock);
 const size_t MAX_THREADS = 4;
 bool ctrlc_pressed = false;
 
-//6个顶点的名称属性
-List<int> li;
 
-//有向图
 typedef adjacency_matrix<directedS> Graph;
 
 Graph g(26);
-
 Graph m(26);
 List<int> ml;
+List<int> li;
+
 int HELP = 0;
 int LOGGING  = 0;
 char *filename = NULL;
+
+// main function
 int main(int argc, char *argv[])
 {
     
@@ -587,11 +551,6 @@ void *tcp_server_read(void *sock1)
 
 {
     enum { A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y ,Z, TOTAL };
-	//枚举常量，A…F用作顶点描述器
-    
-    //For test only
-    //根据枚举量的性质，N == 6
-    //const char* name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     int sock;
     union {

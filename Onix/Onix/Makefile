@@ -1,7 +1,7 @@
 # Makefile file
 # Two mode
 # make: output normal version execution file
-# make debug: output debug version execution file
+# make clean: clean all output files
 CC = g++
 DD = gcc
 CFLAGS = -lpthread

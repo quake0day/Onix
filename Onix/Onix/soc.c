@@ -1,7 +1,7 @@
 /*
  * soc.c - program to open sockets to remote machines
  *
- * $Author: kensmith $
+ * $Author: kensmith & Si Chen (quake0day) $
  * $Id: soc.c 6 2009-07-03 03:18:54Z kensmith $
  */
 
