@@ -118,6 +118,7 @@ main(int argc,char *argv[])
 			}
 			fprintf(stderr,"response from server: ");
 			write(fileno(stdout), buf, bytes);
+			fprintf(stderr,"\r\n");
 		}
 	}
 	return(0);
